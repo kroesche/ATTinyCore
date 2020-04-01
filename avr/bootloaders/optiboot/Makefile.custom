@@ -16,3 +16,17 @@ ifndef PRODUCTION
 	mv $(PROGRAM)_$(CHIP).lst $(PROGRAM)_$(TARGET).lst
 endif
 
+# custom target for the BMS board boot loader
+# we need baud rate to be 4800
+# delay 4s before starting app to allow time to initiate a boot loader
+# (since there is no hardware reset line)
+# always start boot loader after POR to avoid need for hw reset
+# the LED is A6 which is different from arduino default
+
+bms_8_4800:
+	$(MAKE) attiny841	 AVR_FREQ=8000000L BAUD_RATE=4800 LED=A6 TIMEOUT=4 NO_START_APP_ON_POR=1 OPTIBOOT_CUSTOMVER=60
+	mv $(PROGRAM)_attiny841.hex $(PROGRAM)_bms_8_4800.hex
+ifndef PRODUCTION
+	mv $(PROGRAM)_attiny841.lst $(PROGRAM)_bms_8_4800.lst
+endif
+
