@@ -160,6 +160,12 @@
 /* the start of upload correctly to communicate with the  */
 /* bootloader. Shorter timeouts are not viable.           */
 /*                                                        */
+/* HALF_DUPLEX                                            */
+/* Like RS485 except switching is done enabling/disabling */
+/* TX and RX pins when needed and does not use external   */
+/* switch or transceiver for switching. Not implemented   */
+/* for SOFT_UART.                                         */
+/*                                                        */
 /**********************************************************/
 
 /**********************************************************/
@@ -196,6 +202,8 @@
 /**********************************************************/
 /* Edit History:                                          */
 /*                                                        */
+/* July 2020 Joe Kroesche github.com/kroesche/ATTinyCore  */
+/*      added HALF_DUPLEX option                          */
 /* Mar 2020 Spence Konde for ATTinyCore                   */
 /*           github.com/SpenceKonde                       */
 /* 58.0 Pull in RS485 support by Vladimir Dronnikov       */
@@ -757,7 +765,11 @@ int main(void) {
   #ifndef SINGLESPEED
   UCSRA = _BV(U2X); //Double speed mode USART
   #endif //singlespeed
+  #ifdef HALF_DUPLEX
+  UCSRB = _BV(RXEN);  // enable Rx
+  #else
   UCSRB = _BV(RXEN) | _BV(TXEN);  // enable Rx & Tx
+  #endif
   UCSRC = _BV(URSEL) | _BV(UCSZ1) | _BV(UCSZ0);  // config USART; 8N1
   UBRRL = (uint8_t)BAUD_SETTING;
   #else // mega8/etc
@@ -773,7 +785,11 @@ int main(void) {
       #ifndef SINGLESPEED
   UART_SRA = _BV(U2X0); //Double speed mode USART0
       #endif
+  #ifdef HALF_DUPLEX
+  UART_SRB = _BV(RXEN0);
+  #else
   UART_SRB = _BV(RXEN0) | _BV(TXEN0);
+  #endif
   UART_SRC = _BV(UCSZ00) | _BV(UCSZ01);
   UART_SRL = (uint8_t)BAUD_SETTING;
     #endif // LIN_UART
@@ -1059,8 +1075,29 @@ void putch(char ch) {
       RS485_PORT &= ~_BV(RS485);
       #endif
     #else //not RS485
+      #ifdef HALF_DUPLEX
+      // HALF_DUPLEX is like RS485 except with internal TX/RX enable
+      // instead of internal signal
+      //
+      // initial check for UDRE is not necessary here because HALF_DUPLEX
+      // requires entire byte transmitted before exiting. Therefore upon
+      // entry here we are guaranteed that TX can take a byte. This saves
+      // some boot loader code space
+      //while (!(UART_SRA & _BV(UDRE0)) { /* wait for tx ready */ }
+      // disable RX, enable TX
+      UART_SRB = _BV(TXEN0);
+      // clear transmit complete flag
+      UART_SRA |= _BV(TXC0);
+      // write character to output
+      UART_UDR = ch;
+      // wait for transmit complete
+      while (!(UART_SRA & _BV(TXC0))) { /* wait */ }
+      // disable TX, re-enable RX
+      UART_SRB = _BV(RXEN0);
+      #else // not HALF_DUPLEX
       while (!(UART_SRA & _BV(UDRE0))) {  /* Spin */ }
         UART_UDR = ch;
+      #endif
     #endif
   #else //is LIN UART
     while (!(LINSIR & _BV(LTXOK)))   {  /* Spin */ }
