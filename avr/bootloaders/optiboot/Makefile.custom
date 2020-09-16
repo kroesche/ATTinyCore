@@ -39,3 +39,10 @@ ifndef PRODUCTION
 	mv $(PROGRAM)_attiny841.lst $(PROGRAM)_bms_8_4800_hd.lst
 endif
 
+bms_8_2400_hd:
+	$(MAKE) attiny841	 AVR_FREQ=8000000L BAUD_RATE=2400 LED=A6 TIMEOUT=4 NO_START_APP_ON_POR=1 CUSTOM_VERSION=61 DEFS=-DHALF_DUPLEX SINGLESPEED=1
+	mv $(PROGRAM)_attiny841.hex $(PROGRAM)_bms_8_2400_hd.hex
+ifndef PRODUCTION
+	mv $(PROGRAM)_attiny841.lst $(PROGRAM)_bms_8_2400_hd.lst
+endif
+
