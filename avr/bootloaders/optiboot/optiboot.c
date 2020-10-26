@@ -791,6 +791,12 @@ int main(void) {
   UART_SRB = _BV(RXEN0) | _BV(TXEN0);
   #endif
   UART_SRC = _BV(UCSZ00) | _BV(UCSZ01);
+  // If boot loader is called from app, and app uses a different baud
+  // rate, then the upper baud rate register might not be zero as this
+  // code assumed. I had to add clear to 0 here in order for the baud
+  // rate to work when the app was using a different rate.
+  // NOTE: this code is for 't841, dont know if it will work on other devices
+  UBRR0H = 0;
   UART_SRL = (uint8_t)BAUD_SETTING;
     #endif // LIN_UART
   #endif // mega8/etc
@@ -1260,6 +1266,19 @@ void verifySpace() {
     while (1)                  // and busy-loop so that WD causes
       ;                      //  a reset and app start.
   }
+#ifdef HALF_DUPLEX
+  // at slow baud rates, the boot loader sends an ack before the last stop
+  // bit time is complete. because in half duplex it enables the TX output
+  // this overwrites the lingering stop bit still on the RX line.
+  // (in half duplex, TX and RX are tied together). This causes what appears
+  // to be a short stop bit on the line and so the downstream receiver does
+  // not correctly detect the start of the byte of the boot loader response.
+  // Add a delay to make sure the stop bit completes before sending ack.
+  // NOTE: this is for an '841 and may not work on other parts
+  TCNT1 = -(F_CPU/(1024L*200));  // 5ms @ 8MHz
+  TIFR1 = _BV(TOV1);
+  while(!(TIFR1 & _BV(TOV1)));
+#endif
   putch(STK_INSYNC);
 }
 
