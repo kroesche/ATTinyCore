@@ -670,10 +670,9 @@ int main(void) {
          * Clear WDRF because it was most probably set by wdr in bootloader.
          * It's also needed to avoid loop by broken application which could
          * prevent entering bootloader.
-         * '&' operation is skipped to spare few bytes as bits in MCUSR
-         * can only be cleared.
+         * '&= allows CBI to be used, saves flash
          */
-        MCUSTATUSREG = ~(_BV(WDRF));
+        MCUSTATUSREG &= ~(_BV(WDRF));
       }
 #elif (defined(START_APP_ON_EXTR)&&defined(NO_START_APP_ON_POR))
     if ((ch & (_BV(PORF) | _BV(WDRF) | _BV(EXTRF))) != _BV(PORF)) {              // Run app unless only PORF is set
@@ -682,10 +681,9 @@ int main(void) {
          * Clear WDRF because it was most probably set by wdr in bootloader.
          * It's also needed to avoid loop by broken application which could
          * prevent entering bootloader.
-         * '&' operation is skipped to spare few bytes as bits in MCUSR
-         * can only be cleared.
+         * '&= allows CBI to be used, saves flash
          */
-        MCUSTATUSREG = ~(_BV(WDRF));
+        MCUSTATUSREG &= ~(_BV(WDRF));
       }
 #elif ((!defined(START_APP_ON_EXTR))&&defined(NO_START_APP_ON_POR))
     if (ch & _BV(WDRF) )  {                                                     // WDRF is set, go to app
@@ -694,10 +692,9 @@ int main(void) {
          * Clear WDRF because it was most probably set by wdr in bootloader.
          * It's also needed to avoid loop by broken application which could
          * prevent entering bootloader.
-         * '&' operation is skipped to spare few bytes as bits in MCUSR
-         * can only be cleared.
+         * '&= allows CBI to be used, saves flash
          */
-        MCUSTATUSREG = ~(_BV(WDRF));
+        MCUSTATUSREG &= ~(_BV(WDRF));
       }
 #else // START_APP_ON_EXTR but neither  NO_START_APP_ON_WDR and NO_START_APP_ON_POR
 #warning "Bootloader can only start via app request because "
@@ -1276,7 +1273,7 @@ void verifySpace() {
 
 #if LED_START_FLASHES > 0
 void flash_led(uint8_t count) {
-    LED_PIN |= _BV(LED);
+  //LED_PIN |= _BV(LED);
   do {
     #if defined(__AVR_ATtiny261__)||defined(__AVR_ATtiny461__)||defined(__AVR_ATtiny861__) || defined(__AVR_ATtiny25__)||defined(__AVR_ATtiny45__)||defined(__AVR_ATtiny85__)
         TCNT1 = 0xFF&(-(F_CPU/(8192L*16)));
